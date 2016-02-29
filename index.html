@@ -1,0 +1,172 @@
+<!-- Simple logic to create dynamic dependable dropdown with child dropdown & its values or non dependable dynamic dropdown & its values  -->
+<html>
+<head>
+<title>Dynamic Dropdown and child dropdown</title>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+
+<!-- Latest compiled and minified JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+<script src="//code.jquery.com/jquery-1.12.0.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+<h3>Dynamic Fields</h3>
+<p>This is a simple logic to display dynamic dropdown and its values, also loaded child dropdown & its values related to the selected value in a dropdown list.
+You can see the dynamic dropdown and its working functionality for country,language, state and its city dropdown
+</p>
+<p>&nbsp;</p>
+<div id="attributes"></div>
+</div>
+
+<script type="text/javascript">
+var shtml = '', json_array = {};
+
+$.getJSON("demo.php", function(result) { 
+    json_array = result;
+
+  $.each(result, function(aindex, arVal) {
+
+    shtml += '<div class="form-group"><label class="control-label">'+arVal.attr_name+'</label>';
+    if(arVal.attr_parent == true){
+      shtml += '<select class="form-control" id="'+aindex+'" name="'+aindex+'" onchange="loadChild(this);">';
+    }else{
+      shtml += '<select class="form-control" id="'+aindex+'" name="'+aindex+'" >';  
+    }      
+
+    var opt = ''; var a_child;
+    $.each(arVal.attr_value, function(bindex, inVal) {       
+      opt +='<option value="'+inVal.aid+'">'+inVal.aname+'</option>';
+        
+      if("achild" in inVal){// if You have child  
+            //Load child, for initial value
+          if(bindex == 0){ a_child = inVal.achild; }
+      }
+    });      
+    shtml += opt;
+
+    shtml +='</select></div>';      
+
+    if(a_child){
+      shtml += haveChild(a_child, aindex);
+    }
+
+  });
+
+    $('#attributes').html(shtml);
+});
+
+function haveChild(achild, parent){
+
+    if(!achild){return null;}
+
+    var m_html = '';
+
+    $.each(achild, function(aindex, arVal) {
+    m_html += '<div class="form-group '+parent+'"><label class="control-label">'+arVal.attr_name+'</label>';
+    if(arVal.attr_parent == true){
+      m_html += '<select class="form-control" id="'+aindex+'" name="'+aindex+'" onchange=loadSubChild(this);>';
+    }else{
+      m_html += '<select class="form-control" id="'+aindex+'" name="'+aindex+'" >';  
+    }      
+
+    var opt = '', a_child;
+    $.each(arVal.attr_value, function(bindex, inVal) {
+      opt +='<option value="'+inVal.aid+'">'+inVal.aname+'</option>';          
+
+      if("achild" in inVal){// if You have child               
+        //Load child, for initial value
+        if(bindex == 0){ a_child = inVal.achild; }
+      }
+
+    });      
+    m_html += opt;
+
+    m_html +='</select></div>';
+
+    if(a_child){
+      subchild_parents = parent+' '+aindex ;
+      m_html += haveChild(a_child, subchild_parents);
+    }
+    });
+    return m_html;
+}
+
+function loadChild(obj){ 
+    var sel_val = $(obj).val(), 
+        sel_field = $(obj).attr('id'),
+        shtml = '';
+
+    $.each(json_array, function(indx, adata) {
+      if(indx == sel_field){//selected field . Looking for Main parent
+        var a_child;
+        $.each(adata.attr_value, function(aindex, aVal) { 
+
+            if(aVal.aid == sel_val){ // selected value              
+                $( "."+sel_field ).remove();
+              
+                if("achild" in aVal){// if You have child 
+                  shtml += haveChild(aVal.achild, indx);
+                  $( "select#"+ indx).parent( ".form-group" ).after(shtml);
+                }              
+            }
+        });
+      }
+    });
+   
+}  
+
+function loadSubChild(obj){
+ 
+    var sel_val = $(obj).val(), 
+        sel_field = $(obj).attr('id'),
+        m_html = '', parent = '', subparent = '';
+ 
+    $.each(json_array, function(indx, adata) {  
+        parent = indx;   
+        $.each(adata.attr_value, function(aindex, aVal) { 
+
+            if("achild" in aVal){// if You have child 
+              $.each(aVal.achild, function(sindx1, sval1) { 
+                // check the child field here
+                if(sindx1 == sel_field){
+                  subparent = sindx1;  
+
+                  $( "."+subparent).remove();
+
+                  $.each(sval1.attr_value, function(sindex2, sval2) {                     
+
+                    if(sval2.aid == sel_val && "achild" in sval2){
+                      $.each(sval2.achild, function(sindex3, sVal3) { // SUB SUB CHILD
+                        
+                          m_html += '<div class="form-group '+parent+' '+subparent+'"><label class="control-label">'+sVal3.attr_name+'</label>';
+                          m_html += '<select class="form-control" id="'+sindex3+'" name="'+sindex3+'" >';  
+
+                          var opt = '';
+                          $.each(sVal3.attr_value, function(sindex4, sval4) {                                  
+                              opt +='<option value="'+sval4.aid+'">'+sval4.aname+'</option>';       
+                          });                        
+                          m_html += opt;
+                          m_html +='</select></div>';
+
+                          $( "select#"+ subparent).parent( ".form-group" ).after(m_html);
+                      });
+                    }
+                    
+                  });
+                }
+               
+              });
+            }
+        });
+     
+    });
+   
+}            
+</script>
+
